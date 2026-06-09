@@ -42,6 +42,7 @@
   --accent:#f0a0aa;
   --accent-2:#ffd3d8;
   --warning:#ffe08a;
+  --text-outline:1.5px 2px 0 rgba(0,0,0,.35);
   --shadow:none;
   --radius:0;
   --font:"NotoSansJPBlack","Noto Sans JP","Meiryo","Hiragino Kaku Gothic ProN",sans-serif;
@@ -55,6 +56,10 @@ body{
   font:16px/1.8 var(--font);
   background:var(--bg);
   min-height:100vh;
+  text-shadow:var(--text-outline);
+}
+button,input,textarea,select{
+  text-shadow:var(--text-outline);
 }
 body::before{
   content:"";
@@ -146,7 +151,7 @@ a:hover{color:#fff;}
   font:15px var(--font);
   outline:none;
 }
-.search-box input::placeholder{color:rgba(255,255,255,.62);}
+.search-box input::placeholder{color:rgba(255,255,255,.62); text-shadow:var(--text-outline);}
 .search-box input:focus{border-color:rgba(255,211,216,.72); box-shadow:none;}
 .search-box::after{content:"⌕"; position:absolute; right:16px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,.64); font-size:18px;}
 .history-panel{
@@ -379,7 +384,7 @@ tr:last-child td{border-bottom:0;}
 <section class="hero">
   <div class="hero-card">
     <h2>よくある質問</h2>
-    <p>本ゲームで起こりうる質問に対して回答しております。</p>
+    <p>本ゲームで起こりうる質問に対しての回答を記載しております。</p>
   </div>
 </section>
 <div class="layout">
