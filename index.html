@@ -487,6 +487,18 @@ function renderTable(lines){
   html += '</tbody></table></div>';
   return html;
 }
+function isLooseTableLine(line){
+  if(!line.includes('|') || line.includes('\\|')) return false;
+  const cells = splitTableRow(line);
+  return cells.length >= 2 && cells.some(c => c.trim() !== '');
+}
+function renderLooseTable(lines){
+  const rows = lines.map(splitTableRow);
+  let html = '<div class="table-wrap"><table><tbody>';
+  html += rows.map(r => '<tr>' + r.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>').join('');
+  html += '</tbody></table></div>';
+  return html;
+}
 function renderMarkdown(md){
   const makeId = uniqueSlugFactory();
   const lines = String(md).replace(/\r\n?/g,'\n').split('\n');
@@ -519,6 +531,18 @@ function renderMarkdown(md){
       while(i < lines.length && lines[i].includes('|') && lines[i].trim() !== ''){ block.push(lines[i]); i++; }
       i--;
       html += renderTable(block);
+      continue;
+    }
+    if(isLooseTableLine(line)){
+      flushParagraph(); closeLists();
+      const block = [line];
+      let j = i + 1;
+      while(j < lines.length && isLooseTableLine(lines[j]) && !isTableSep(lines[j])){
+        block.push(lines[j]);
+        j++;
+      }
+      html += renderLooseTable(block);
+      i = j - 1;
       continue;
     }
     const heading = line.match(/^(#{1,4})\s+(.+)$/);
