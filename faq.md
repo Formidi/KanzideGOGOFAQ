@@ -4,7 +4,7 @@
 26/6/9
 ┗公開
 <!-- history:end -->
-## 本当に公式FAQ？なんか赤くて怪しい…
+## 本当に公式？なんか赤くて怪しい…
 [『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)やSteamストアページにおいて、このサイトを参照しております。
 
 ## リンク
