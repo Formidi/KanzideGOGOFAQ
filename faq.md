@@ -7,6 +7,10 @@
 ## 本当に公式FAQ？赤くて怪しい…
 [『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)やSteamストアページにおいて、このサイトを参照しております。
 
+## リンク
+|Steam|Steamストアページのリンクです。|
+
+
 ## 遊び方
 
 ### 漢字がうまく認識されない
