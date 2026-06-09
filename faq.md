@@ -8,9 +8,9 @@
 [『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)やSteamストアページにおいて、このサイトを参照しております。
 
 ## リンク
-|Steam|
-|[『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)|
-|[公式X](https://x.com/KanzideGo)|
+|Steam| |
+|[『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)| |
+|[公式X](https://x.com/KanzideGo)| |
 
 
 ## 遊び方
