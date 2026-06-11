@@ -436,24 +436,43 @@ function colorizeEscaped(html){
 }
 function inline(src){
   const codeParts = [];
+  const htmlParts = [];
+
+  function stashHtml(html){
+    const key = `\u0000HTML${htmlParts.length}\u0000`;
+    htmlParts.push(html);
+    return key;
+  }
+
   let s = String(src).replace(/`([^`\n]+?)`/g, (_, code) => {
     const key = `\u0000CODE${codeParts.length}\u0000`;
     codeParts.push(`<code>${escapeHtml(code)}</code>`);
     return key;
   });
+
   s = escapeHtml(s);
   s = colorizeEscaped(s);
   s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, alt, url, title) => {
-    return `<img src="${escapeAttr(url)}" alt="${escapeAttr(alt)}"${title ? ` title="${escapeAttr(title)}"` : ''}>`;
+    return stashHtml(`<img src="${escapeAttr(url)}" alt="${escapeAttr(alt)}"${title ? ` title="${escapeAttr(title)}"` : ''}>`);
   });
+
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, text, url, title) => {
-    return `<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${text}</a>`;
+    return stashHtml(`<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${text}</a>`);
   });
+
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
   s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
   s = s.replace(/_([^_]+)_/g, '<em>$1</em>');
-  codeParts.forEach((html, i) => { s = s.replace(`\u0000CODE${i}\u0000`, html); });
+
+  htmlParts.forEach((html, i) => {
+    s = s.replace(`\u0000HTML${i}\u0000`, html);
+  });
+
+  codeParts.forEach((html, i) => {
+    s = s.replace(`\u0000CODE${i}\u0000`, html);
+  });
+
   return s;
 }
 function isTableSep(line){
