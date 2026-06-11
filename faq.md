@@ -6,7 +6,7 @@
 <!-- history:end -->
 動作確認／推奨OSはWindowsのみです。Macなどほか環境は動作保証外です。
 ## リンク
-|Steam| |
+|[Steam](https://store.steampowered.com/app/4826530/GOGO/)| |
 |[『漢字でGO!』FAQ](https://formidi.github.io/KanzideGoFAQ/)| |
 |[公式X](https://x.com/KanzideGo)| |
 
