@@ -1,5 +1,8 @@
 <!-- history:start -->
-最終更新日…26/7/15
+最終更新日…26/7/18
+
+26/7/18
+┗項目『字形・認識』を更新
 
 26/7/15
 ┗項目『その他』を更新
@@ -241,6 +244,178 @@ v0.0.60より、ギリギリの制限時間を4秒延長(16秒⇒20秒)しまし
 [CaptainDario](https://github.com/dariyooo)様の『Dakanji』という機械学習モデルを使用しております。
 JIS第3水準以降、および水準外の漢字においては、Micelleが数回漢字を書いてサンプルを集め、平均して頻出するものをその字として見なす設計にしております。
 （エンジン自体の改変ではなく、ゲーム上のシステムによるものです）
+
+### 判定バージョンごとの違いは？
+ver1を基本として、ver2では紛らわしい文字を照合する『門番漢字』、ver3では偏・旁・冠・脚などを個別に確認する『分割判定』を追加しています。
+
+下の図はドラッグで移動できます。ホイールまたは図の上にあるボタンで拡大・縮小し、『全体表示』で初期位置へ戻せます。
+
+#### ver1：基本判定
+```mermaid
+flowchart LR
+    subgraph S1["入力・認識"]
+        direction TB
+        A["手書きした漢字"]
+        B["DaKanji・KanjiVGへ送信"]
+        C["DaKanjiの認識候補を確認"]
+        A --> B --> C
+    end
+
+    subgraph S2["基本判定"]
+        direction TB
+        D["見なし文字を正解候補として照合"]
+        E{"指定字または見なし文字が候補内にある？"}
+        D --> E
+    end
+
+    subgraph S3["判定結果"]
+        direction TB
+        OK["正解"]
+        NG["誤答"]
+    end
+
+    C --> D
+    E -- はい --> OK
+    E -- いいえ --> NG
+
+    classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
+    classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
+    classDef success fill:#e5f6e8,stroke:#2d8a43,color:#164c25
+    classDef fail fill:#fce8e6,stroke:#c33c2e,color:#6a1b15
+
+    class A,B,C,D process
+    class E decision
+    class OK success
+    class NG fail
+```
+
+#### ver2：門番漢字を追加
+```mermaid
+flowchart LR
+    subgraph S1["入力・認識"]
+        direction TB
+        A["手書きした漢字"]
+        B["DaKanji・KanjiVGへ送信"]
+        C["DaKanjiの認識候補を確認"]
+        A --> B --> C
+    end
+
+    subgraph S2["DaKanjiによる判定"]
+        direction TB
+        D["見なし文字を正解候補として照合"]
+        E["門番漢字を照合"]
+        F["重複した字は見なし文字を優先"]
+        G{"指定字・見なし文字が候補内にある？"}
+        H{"門番漢字がそれらより上位にある？"}
+        D --> E --> F --> G
+        G -- はい --> H
+    end
+
+    subgraph S3["KanjiVGによる救済"]
+        direction TB
+        X["DaKanjiでは正解にできない"]
+        K["KanjiVGの認識候補を確認"]
+        L{"上位に指定字がある？"}
+        X --> K --> L
+    end
+
+    subgraph S4["判定結果"]
+        direction TB
+        OK["正解"]
+        NG["誤答"]
+    end
+
+    C --> D
+    G -- いいえ --> X
+    H -- いいえ --> OK
+    H -- はい --> X
+    L -- はい --> OK
+    L -- いいえ --> NG
+
+    classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
+    classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
+    classDef fallback fill:#f1e8ff,stroke:#7b4ab5,color:#3b1f59
+    classDef success fill:#e5f6e8,stroke:#2d8a43,color:#164c25
+    classDef fail fill:#fce8e6,stroke:#c33c2e,color:#6a1b15
+
+    class A,B,C,D,E,F process
+    class G,H,L decision
+    class X,K fallback
+    class OK success
+    class NG fail
+```
+
+#### ver3：分割判定と投票を追加
+```mermaid
+flowchart LR
+    subgraph S1["入力・認識"]
+        direction TB
+        A["手書きした漢字"]
+        B["DaKanji・KanjiVGへ送信"]
+        C["DaKanjiの認識候補を確認"]
+        A --> B --> C
+    end
+
+    subgraph S2["基本判定"]
+        direction TB
+        D["見なし文字を正解候補として照合"]
+        E["門番漢字を照合"]
+        F["重複した字は見なし文字を優先"]
+        G{"指定字・見なし文字が候補内にある？"}
+        H{"門番漢字がそれらより上位にある？"}
+        D --> E --> F --> G
+        G -- はい --> H
+    end
+
+    subgraph S3["分割判定・投票"]
+        direction TB
+        I["各パーツの認識候補を確認"]
+        J{"各パーツがそろう候補ペアがある？"}
+        P{"パーツ単位の門番漢字がある？"}
+        Q["パラメータ・サンプルごとの結果を多数決"]
+        R{"指定字・見なし文字側のペアが多数？"}
+        I --> J
+        J -- はい --> P
+        P -- はい --> Q --> R
+    end
+
+    subgraph S4["KanjiVGによる救済"]
+        direction TB
+        X["DaKanjiでは正解にできない"]
+        K["KanjiVGの認識候補を確認"]
+        L{"上位に指定字がある？"}
+        X --> K --> L
+    end
+
+    subgraph S5["判定結果"]
+        direction TB
+        OK["正解"]
+        NG["誤答"]
+    end
+
+    C --> D
+    G -- いいえ --> X
+    H -- はい --> X
+    H -- いいえ --> I
+    J -- いいえ --> X
+    P -- いいえ --> OK
+    R -- はい --> OK
+    R -- いいえ --> X
+    L -- はい --> OK
+    L -- いいえ --> NG
+
+    classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
+    classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
+    classDef fallback fill:#f1e8ff,stroke:#7b4ab5,color:#3b1f59
+    classDef success fill:#e5f6e8,stroke:#2d8a43,color:#164c25
+    classDef fail fill:#fce8e6,stroke:#c33c2e,color:#6a1b15
+
+    class A,B,C,D,E,F,I,Q process
+    class G,H,J,P,R,L decision
+    class X,K fallback
+    class OK success
+    class NG fail
+```
 
 ### 正しく書いたはずなのに、特定の漢字がうまく認識されない
 可能であれば[ペンタブレット](https://ja.wikipedia.org/wiki/%E3%83%9A%E3%83%B3%E3%82%BF%E3%83%96%E3%83%AC%E3%83%83%E3%83%88)類でのプレイを推奨いたします。

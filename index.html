@@ -306,6 +306,122 @@ a:hover{color:#fff;}
   background:rgba(18,6,8,.70);
 }
 .md-content pre code{background:transparent; border:0; padding:0; border-radius:0;}
+.mermaid-viewer{
+  margin:16px 0 22px;
+  overflow:hidden;
+  border:1px solid var(--edge);
+  background:rgba(18,6,8,.46);
+}
+.mermaid-toolbar{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:8px 10px 8px 14px;
+  border-bottom:1px solid var(--edge);
+  background:rgba(255,255,255,.07);
+}
+.mermaid-help{
+  min-width:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+.mermaid-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.mermaid-actions button{
+  min-width:34px;
+  height:30px;
+  border:1px solid var(--edge-strong);
+  border-radius:0;
+  background:rgba(255,255,255,.10);
+  color:#fff;
+  padding:0 9px;
+  font:700 13px/1 var(--font);
+  cursor:pointer;
+}
+.mermaid-actions button:hover,
+.mermaid-actions button:focus-visible{
+  border-color:rgba(255,211,216,.78);
+  background:rgba(255,211,216,.17);
+  outline:none;
+}
+.mermaid-scale{
+  width:48px;
+  color:var(--muted);
+  font:12px/1 var(--mono);
+  text-align:center;
+  text-shadow:none;
+}
+.mermaid-viewport{
+  position:relative;
+  width:100%;
+  height:440px;
+  overflow:hidden;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  outline:none;
+  background-color:#f7f8fb;
+  background-image:
+    linear-gradient(rgba(76,120,168,.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76,120,168,.10) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+.mermaid-viewport.is-dragging{cursor:grabbing;}
+.mermaid-viewport:focus-visible{
+  box-shadow:inset 0 0 0 3px rgba(240,160,170,.72);
+}
+.mermaid-stage{
+  position:absolute;
+  left:0;
+  top:0;
+  transform-origin:0 0;
+  will-change:transform;
+}
+.mermaid-stage,
+.mermaid-stage *{
+  text-shadow:none;
+}
+.mermaid-stage svg{
+  display:block;
+  max-width:none !important;
+  height:auto;
+}
+.mermaid-status{
+  width:max-content;
+  max-width:calc(100vw - 90px);
+  padding:12px 16px;
+  border:1px solid rgba(76,120,168,.28);
+  background:#fff;
+  color:#334155;
+  font-size:14px;
+  line-height:1.6;
+}
+.mermaid-status.is-error{
+  border-color:#c33c2e;
+  color:#8a251d;
+}
+.mermaid-source-wrap{
+  border-top:1px solid var(--edge);
+  background:rgba(18,6,8,.40);
+}
+.mermaid-source-wrap summary{
+  padding:9px 14px;
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
+}
+.md-content .mermaid-source{
+  max-height:320px;
+  margin:0;
+  border-width:1px 0 0;
+}
 .table-wrap{width:100%; overflow-x:auto; margin:14px 0; border-radius:0; border:1px solid var(--edge);}
 table{width:100%; border-collapse:collapse; min-width:520px; background:rgba(255,255,255,.04);}
 th,td{padding:11px 12px; border-bottom:1px solid rgba(255,255,255,.12); text-align:left; vertical-align:top;}
@@ -360,6 +476,10 @@ tr:last-child td{border-bottom:0;}
   .layout{grid-template-columns:1fr;}
   .toc{position:static;}
   .content{padding:18px;}
+  .mermaid-toolbar{align-items:flex-start; flex-direction:column;}
+  .mermaid-actions{width:100%;}
+  .mermaid-actions button[data-mermaid-action="reset"]{margin-left:auto;}
+  .mermaid-viewport{height:360px;}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
 </style>
@@ -411,6 +531,9 @@ const historyToggle = document.getElementById('historyToggle');
 const historyPanel = document.getElementById('historyPanel');
 const historyContent = document.getElementById('historyContent');
 const MD_FILE = document.body.dataset.md || 'faq.md';
+const MERMAID_MODULE_URL = 'https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.esm.min.mjs';
+let mermaidModulePromise = null;
+let mermaidRenderSequence = 0;
 const customColor = {
   sk:'#9fc5ff', li:'#b9f59e', vi:'#cdb7ff',
   accent:'#ffd3d8', warn:'#ffe08a', mute:'rgba(255,255,255,.72)'
@@ -525,6 +648,31 @@ function renderLooseTable(lines){
   html += '</tbody></table></div>';
   return html;
 }
+function renderCodeBlock(source, language){
+  const code = String(source);
+  const lang = String(language || '').trim().toLowerCase();
+  if(lang !== 'mermaid'){
+    return `<pre><code>${escapeHtml(code)}</code></pre>`;
+  }
+  return `<section class="mermaid-viewer" data-mermaid-viewer>
+    <div class="mermaid-toolbar">
+      <span class="mermaid-help">図をドラッグして移動／ホイールまたはボタンで拡大・縮小</span>
+      <div class="mermaid-actions" aria-label="図の表示操作">
+        <button type="button" data-mermaid-action="zoom-out" aria-label="縮小" title="縮小">−</button>
+        <output class="mermaid-scale" aria-live="polite">--%</output>
+        <button type="button" data-mermaid-action="zoom-in" aria-label="拡大" title="拡大">＋</button>
+        <button type="button" data-mermaid-action="reset">全体表示</button>
+      </div>
+    </div>
+    <div class="mermaid-viewport" tabindex="0" role="group" aria-label="操作できるフローチャート">
+      <div class="mermaid-stage"><div class="mermaid-status">図を読み込んでいます…</div></div>
+    </div>
+    <details class="mermaid-source-wrap">
+      <summary>Mermaidコードを見る</summary>
+      <pre class="mermaid-source"><code>${escapeHtml(code)}</code></pre>
+    </details>
+  </section>`;
+}
 function renderMarkdown(md){
   const makeId = uniqueSlugFactory();
   const lines = String(md).replace(/\r\n?/g,'\n').split('\n');
@@ -533,6 +681,7 @@ function renderMarkdown(md){
   let listStack = [];
   let inCode = false;
   let code = [];
+  let codeLanguage = '';
   let inFaq = false;
   function closeLists(){ while(listStack.length){ html += `</${listStack.pop()}>`; } }
   function closeFaq(){ if(inFaq){ closeLists(); html += '</article>'; inFaq = false; } }
@@ -543,10 +692,18 @@ function renderMarkdown(md){
   }
   for(let i=0; i<lines.length; i++){
     const line = lines[i];
-    if(/^```/.test(line.trim())){
+    const fence = line.trim().match(/^```\s*([A-Za-z0-9_-]*)\s*$/);
+    if(fence){
       flushParagraph(); closeLists();
-      if(inCode){ html += `<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`; code = []; inCode = false; }
-      else{ inCode = true; }
+      if(inCode){
+        html += renderCodeBlock(code.join('\n'), codeLanguage);
+        code = [];
+        codeLanguage = '';
+        inCode = false;
+      }else{
+        inCode = true;
+        codeLanguage = fence[1] || '';
+      }
       continue;
     }
     if(inCode){ code.push(line); continue; }
@@ -601,9 +758,215 @@ function renderMarkdown(md){
     if(listStack.length) closeLists();
     paragraph.push(line);
   }
-  if(inCode){ html += `<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`; }
+  if(inCode){ html += renderCodeBlock(code.join('\n'), codeLanguage); }
   flushParagraph(); closeLists(); closeFaq();
   return html;
+}
+
+function clamp(value, min, max){
+  return Math.min(max, Math.max(min, value));
+}
+function loadMermaidModule(){
+  if(!mermaidModulePromise){
+    mermaidModulePromise = import(MERMAID_MODULE_URL).then(module => {
+      const mermaid = module.default;
+      mermaid.initialize({
+        startOnLoad:false,
+        securityLevel:'strict',
+        theme:'base',
+        themeVariables:{
+          fontFamily:'NotoSansJPBold, Noto Sans JP, Meiryo, sans-serif',
+          fontSize:'16px',
+          primaryColor:'#eaf2ff',
+          primaryTextColor:'#172b4d',
+          primaryBorderColor:'#4c78a8',
+          lineColor:'#64748b',
+          secondaryColor:'#fff4d6',
+          tertiaryColor:'#f8fafc',
+          clusterBkg:'#f8fafc',
+          clusterBorder:'#cbd5e1',
+          edgeLabelBackground:'#ffffff'
+        },
+        flowchart:{
+          htmlLabels:false,
+          useMaxWidth:false,
+          curve:'basis'
+        }
+      });
+      return mermaid;
+    });
+  }
+  return mermaidModulePromise;
+}
+function showMermaidError(viewer, message){
+  const stage = viewer.querySelector('.mermaid-stage');
+  if(stage){
+    stage.style.transform = 'translate(20px, 20px)';
+    stage.innerHTML = `<div class="mermaid-status is-error"><strong>図を表示できませんでした。</strong><br>${escapeHtml(message)}</div>`;
+  }
+  const scaleOutput = viewer.querySelector('.mermaid-scale');
+  if(scaleOutput) scaleOutput.textContent = '--%';
+  viewer.dataset.mermaidState = 'error';
+}
+function setupMermaidPanZoom(viewer, stage, svg){
+  const viewport = viewer.querySelector('.mermaid-viewport');
+  const scaleOutput = viewer.querySelector('.mermaid-scale');
+  const viewBox = svg.viewBox && svg.viewBox.baseVal;
+  let diagramWidth = viewBox && viewBox.width > 0 ? viewBox.width : parseFloat(svg.getAttribute('width'));
+  let diagramHeight = viewBox && viewBox.height > 0 ? viewBox.height : parseFloat(svg.getAttribute('height'));
+  if(!(diagramWidth > 0) || !(diagramHeight > 0)){
+    const box = svg.getBBox();
+    diagramWidth = Math.max(1, box.width);
+    diagramHeight = Math.max(1, box.height);
+  }
+  svg.setAttribute('width', String(diagramWidth));
+  svg.setAttribute('height', String(diagramHeight));
+  svg.style.width = `${diagramWidth}px`;
+  svg.style.height = `${diagramHeight}px`;
+
+  const minScale = .08;
+  const maxScale = 3;
+  const state = {x:0, y:0, scale:1};
+  let drag = null;
+  let interacted = false;
+
+  function applyTransform(){
+    stage.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+    if(scaleOutput) scaleOutput.textContent = `${Math.round(state.scale * 100)}%`;
+  }
+  function fitToViewport(){
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    if(!width || !height) return;
+    const padding = 28;
+    state.scale = clamp(Math.min(
+      (width - padding * 2) / diagramWidth,
+      (height - padding * 2) / diagramHeight
+    ), minScale, 1);
+    state.x = (width - diagramWidth * state.scale) / 2;
+    state.y = (height - diagramHeight * state.scale) / 2;
+    applyTransform();
+  }
+  function zoomAt(factor, clientX, clientY){
+    const rect = viewport.getBoundingClientRect();
+    const pointX = clientX - rect.left;
+    const pointY = clientY - rect.top;
+    const nextScale = clamp(state.scale * factor, minScale, maxScale);
+    const diagramX = (pointX - state.x) / state.scale;
+    const diagramY = (pointY - state.y) / state.scale;
+    state.x = pointX - diagramX * nextScale;
+    state.y = pointY - diagramY * nextScale;
+    state.scale = nextScale;
+    interacted = true;
+    applyTransform();
+  }
+  function zoomAtCenter(factor){
+    const rect = viewport.getBoundingClientRect();
+    zoomAt(factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  }
+
+  viewport.addEventListener('pointerdown', event => {
+    if(event.button !== 0) return;
+    drag = {
+      pointerId:event.pointerId,
+      clientX:event.clientX,
+      clientY:event.clientY,
+      x:state.x,
+      y:state.y
+    };
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add('is-dragging');
+    interacted = true;
+    event.preventDefault();
+  });
+  viewport.addEventListener('pointermove', event => {
+    if(!drag || drag.pointerId !== event.pointerId) return;
+    state.x = drag.x + event.clientX - drag.clientX;
+    state.y = drag.y + event.clientY - drag.clientY;
+    applyTransform();
+  });
+  function finishDrag(event){
+    if(!drag || drag.pointerId !== event.pointerId) return;
+    if(viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+    drag = null;
+    viewport.classList.remove('is-dragging');
+  }
+  viewport.addEventListener('pointerup', finishDrag);
+  viewport.addEventListener('pointercancel', finishDrag);
+  viewport.addEventListener('wheel', event => {
+    event.preventDefault();
+    zoomAt(Math.exp(-event.deltaY * .0015), event.clientX, event.clientY);
+  }, {passive:false});
+  viewport.addEventListener('dblclick', () => {
+    interacted = false;
+    fitToViewport();
+  });
+  viewport.addEventListener('keydown', event => {
+    const step = event.shiftKey ? 70 : 30;
+    if(event.key === '+' || event.key === '=') zoomAtCenter(1.2);
+    else if(event.key === '-') zoomAtCenter(1 / 1.2);
+    else if(event.key === '0'){
+      interacted = false;
+      fitToViewport();
+    }else if(event.key === 'ArrowLeft') state.x += step;
+    else if(event.key === 'ArrowRight') state.x -= step;
+    else if(event.key === 'ArrowUp') state.y += step;
+    else if(event.key === 'ArrowDown') state.y -= step;
+    else return;
+    if(event.key.startsWith('Arrow')){
+      interacted = true;
+      applyTransform();
+    }
+    event.preventDefault();
+  });
+
+  viewer.querySelector('[data-mermaid-action="zoom-out"]').addEventListener('click', () => zoomAtCenter(1 / 1.2));
+  viewer.querySelector('[data-mermaid-action="zoom-in"]').addEventListener('click', () => zoomAtCenter(1.2));
+  viewer.querySelector('[data-mermaid-action="reset"]').addEventListener('click', () => {
+    interacted = false;
+    fitToViewport();
+  });
+
+  if('ResizeObserver' in window){
+    const observer = new ResizeObserver(() => {
+      if(!interacted) fitToViewport();
+    });
+    observer.observe(viewport);
+  }
+  requestAnimationFrame(fitToViewport);
+}
+async function renderMermaidViewer(viewer, mermaid){
+  const source = viewer.querySelector('.mermaid-source code').textContent.trim();
+  const stage = viewer.querySelector('.mermaid-stage');
+  viewer.dataset.mermaidState = 'loading';
+  try{
+    const id = `faq-mermaid-${++mermaidRenderSequence}`;
+    const rendered = await mermaid.render(id, source);
+    stage.style.transform = '';
+    stage.innerHTML = rendered.svg;
+    const svg = stage.querySelector('svg');
+    if(!svg) throw new Error('SVGを生成できませんでした。');
+    if(rendered.bindFunctions) rendered.bindFunctions(stage);
+    setupMermaidPanZoom(viewer, stage, svg);
+    viewer.dataset.mermaidState = 'ready';
+  }catch(error){
+    showMermaidError(viewer, error && error.message ? error.message : String(error));
+  }
+}
+async function initializeMermaidBlocks(){
+  const viewers = Array.from(content.querySelectorAll('[data-mermaid-viewer]'));
+  if(!viewers.length) return;
+  let mermaid;
+  try{
+    mermaid = await loadMermaidModule();
+  }catch(error){
+    const message = 'Mermaidの読込に失敗しました。ネットワーク接続をご確認ください。';
+    viewers.forEach(viewer => showMermaidError(viewer, message));
+    return;
+  }
+  for(const viewer of viewers){
+    await renderMermaidViewer(viewer, mermaid);
+  }
 }
 
 function decodeHtmlEntities(s){
@@ -680,6 +1043,7 @@ async function load(){
     content.innerHTML = renderMarkdown(extracted.body);
     buildToc();
     applySearch();
+    void initializeMermaidBlocks();
   }catch(err){
     setHistoryVisible(false);
     content.innerHTML = `<div class="error-message"><strong>faq.md を読み込めませんでした。</strong><br>GitHub PagesなどのWebサーバー上で開いてください。ローカル確認の場合は、VS CodeのLive Server等を使うと読み込めます。<br><code>${escapeHtml(err.message || err)}</code></div>`;
