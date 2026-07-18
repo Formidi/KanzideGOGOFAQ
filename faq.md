@@ -253,30 +253,15 @@ ver1を基本として、ver2では紛らわしい文字を照合する『門番
 #### ver1：基本判定
 ```mermaid
 flowchart LR
-    subgraph S1["入力・認識"]
-        direction TB
-        A["手書きした漢字"]
-        B["DaKanji・KanjiVGへ送信"]
-        C["DaKanjiの認識候補を確認"]
-        A --> B --> C
-    end
-
-    subgraph S2["基本判定"]
-        direction TB
-        D["見なし文字を正解候補として照合"]
-        E{"指定字または見なし文字が候補内にある？"}
-        D --> E
-    end
-
-    subgraph S3["判定結果"]
-        direction TB
-        OK["正解"]
-        NG["誤答"]
-    end
-
-    C --> D
+    A["手書きした漢字"] --> B["DaKanji・KanjiVGへ送信"]
+    B --> C["DaKanjiの認識候補を確認"]
+    C --> D["見なし文字を正解候補として照合"]
+    D --> E{"指定字または見なし文字が候補内にある？"}
     E -- はい --> OK
     E -- いいえ --> NG
+
+    OK["正解"]
+    NG["誤答"]
 
     classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
     classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
@@ -287,50 +272,30 @@ flowchart LR
     class E decision
     class OK success
     class NG fail
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 #### ver2：門番漢字を追加
 ```mermaid
 flowchart LR
-    subgraph S1["入力・認識"]
-        direction TB
-        A["手書きした漢字"]
-        B["DaKanji・KanjiVGへ送信"]
-        C["DaKanjiの認識候補を確認"]
-        A --> B --> C
-    end
-
-    subgraph S2["DaKanjiによる判定"]
-        direction TB
-        D["見なし文字を正解候補として照合"]
-        E["門番漢字を照合"]
-        F["重複した字は見なし文字を優先"]
-        G{"指定字・見なし文字が候補内にある？"}
-        H{"門番漢字がそれらより上位にある？"}
-        D --> E --> F --> G
-        G -- はい --> H
-    end
-
-    subgraph S3["KanjiVGによる救済"]
-        direction TB
-        X["DaKanjiでは正解にできない"]
-        K["KanjiVGの認識候補を確認"]
-        L{"上位に指定字がある？"}
-        X --> K --> L
-    end
-
-    subgraph S4["判定結果"]
-        direction TB
-        OK["正解"]
-        NG["誤答"]
-    end
-
-    C --> D
+    A["手書きした漢字"] --> B["DaKanji・KanjiVGへ送信"]
+    B --> C["DaKanjiの認識候補を確認"]
+    C --> D["見なし文字を正解候補として照合"]
+    D --> E["門番漢字を照合"]
+    E --> F["重複した字は見なし文字を優先"]
+    F --> G{"指定字・見なし文字が候補内にある？"}
+    G -- はい --> H{"門番漢字がそれらより上位にある？"}
     G -- いいえ --> X
     H -- いいえ --> OK
     H -- はい --> X
+
+    X["DaKanjiでは正解にできない"] --> K["KanjiVGの認識候補を確認"]
+    K --> L{"上位に指定字がある？"}
     L -- はい --> OK
     L -- いいえ --> NG
+
+    OK["正解"]
+    NG["誤答"]
 
     classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
     classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
@@ -343,66 +308,39 @@ flowchart LR
     class X,K fallback
     class OK success
     class NG fail
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 #### ver3：分割判定と投票を追加
 ```mermaid
 flowchart LR
-    subgraph S1["入力・認識"]
-        direction TB
-        A["手書きした漢字"]
-        B["DaKanji・KanjiVGへ送信"]
-        C["DaKanjiの認識候補を確認"]
-        A --> B --> C
-    end
-
-    subgraph S2["基本判定"]
-        direction TB
-        D["見なし文字を正解候補として照合"]
-        E["門番漢字を照合"]
-        F["重複した字は見なし文字を優先"]
-        G{"指定字・見なし文字が候補内にある？"}
-        H{"門番漢字がそれらより上位にある？"}
-        D --> E --> F --> G
-        G -- はい --> H
-    end
-
-    subgraph S3["分割判定・投票"]
-        direction TB
-        I["各パーツの認識候補を確認"]
-        J{"各パーツがそろう候補ペアがある？"}
-        P{"パーツ単位の門番漢字がある？"}
-        Q["パラメータ・サンプルごとの結果を多数決"]
-        R{"指定字・見なし文字側のペアが多数？"}
-        I --> J
-        J -- はい --> P
-        P -- はい --> Q --> R
-    end
-
-    subgraph S4["KanjiVGによる救済"]
-        direction TB
-        X["DaKanjiでは正解にできない"]
-        K["KanjiVGの認識候補を確認"]
-        L{"上位に指定字がある？"}
-        X --> K --> L
-    end
-
-    subgraph S5["判定結果"]
-        direction TB
-        OK["正解"]
-        NG["誤答"]
-    end
-
-    C --> D
+    A["手書きした漢字"] --> B["DaKanji・KanjiVGへ送信"]
+    B --> C["DaKanjiの認識候補を確認"]
+    C --> D["見なし文字を正解候補として照合"]
+    D --> E["門番漢字を照合"]
+    E --> F["重複した字は見なし文字を優先"]
+    F --> G{"指定字・見なし文字が候補内にある？"}
+    G -- はい --> H{"門番漢字がそれらより上位にある？"}
     G -- いいえ --> X
     H -- はい --> X
-    H -- いいえ --> I
+    H -- いいえ --> I["各パーツの認識候補を確認"]
+
+    I --> J{"各パーツがそろう候補ペアがある？"}
     J -- いいえ --> X
+    J -- はい --> P{"パーツ単位の門番漢字がある？"}
     P -- いいえ --> OK
+    P -- はい --> Q["パラメータ・サンプルごとの結果を多数決"]
+    Q --> R{"指定字・見なし文字側のペアが多数？"}
     R -- はい --> OK
     R -- いいえ --> X
+
+    X["DaKanjiでは正解にできない"] --> K["KanjiVGの認識候補を確認"]
+    K --> L{"上位に指定字がある？"}
     L -- はい --> OK
     L -- いいえ --> NG
+
+    OK["正解"]
+    NG["誤答"]
 
     classDef process fill:#eaf2ff,stroke:#4c78a8,color:#172b4d
     classDef decision fill:#fff4d6,stroke:#d99000,color:#503800
@@ -415,6 +353,7 @@ flowchart LR
     class X,K fallback
     class OK success
     class NG fail
+    linkStyle default stroke:#64748b,stroke-width:2px
 ```
 
 ### 正しく書いたはずなのに、特定の漢字がうまく認識されない
